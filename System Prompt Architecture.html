@@ -1,528 +1,592 @@
-import React, { useState } from 'react';
-import { 
-  Shield, 
-  User, 
-  Activity, 
-  Layers, 
-  FileJson, 
-  Terminal, 
-  ChevronDown, 
-  Cpu,
-  CheckCircle2,
-  AlertCircle,
-  Box,
-  FileText,
-  Variable,
-  Database,
-  Code,
-  Target,
-  Heart,
-  Wrench,
-  Users,
-  PlayCircle,
-  Clock,
-  Zap,
-  LayoutGrid
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Prompt Architecture</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (Global) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-const SystemPromptFlow = () => {
-  const [expandedTemplate, setExpandedTemplate] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        pre, code {
+            font-family: 'JetBrains Mono', monospace;
+        }
 
-  // 定義每一層的數據結構
-  const layers = [
-    {
-      id: 1,
-      title: "Role & Identity Layer",
-      subtitle: "定義 Agent 的人格與定位",
-      icon: <User className="w-6 h-6" />,
-      color: "border-blue-500",
-      bgColor: "bg-blue-50",
-      iconColor: "text-blue-600",
-      items: ["agent_name", "user_name", "Service positioning"]
-    },
-    {
-      id: 2,
-      title: "Governance Rules Layer",
-      subtitle: "對話控制與安全規範",
-      icon: <Shield className="w-6 h-6" />,
-      color: "border-amber-500",
-      bgColor: "bg-amber-50",
-      iconColor: "text-amber-600",
-      items: ["Conversation flow", "Step confirmation", "Error handling", "Reasoning effort control"]
-    },
-    {
-      id: 3,
-      title: "Capability Boundary Layer",
-      subtitle: "能力限制與工具邊界",
-      icon: <Activity className="w-6 h-6" />,
-      color: "border-red-500",
-      bgColor: "bg-red-50",
-      iconColor: "text-red-600",
-      items: ["Artifacts.Utilities only", "No hallucinated tools", "Param & type validation"]
-    },
-    {
-      id: 4,
-      title: "Schema & Localization Layer",
-      subtitle: "資料結構與語言在地化",
-      icon: <Layers className="w-6 h-6" />,
-      color: "border-emerald-500",
-      bgColor: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      items: ["Human-readable names only", "No internal keys / schema paths", "Structure Name Mapping Rules"]
-    },
-    {
-      id: 5,
-      title: "Output Contract Layer",
-      subtitle: "輸出格式協議",
-      icon: <FileJson className="w-6 h-6" />,
-      color: "border-purple-500",
-      bgColor: "bg-purple-50",
-      iconColor: "text-purple-600",
-      items: ["Single JSON object", "Fixed field order", "message / question / summary / error"]
-    },
-    {
-      id: 6,
-      title: "Terminal Action Layer",
-      subtitle: "最終執行與存檔",
-      icon: <Terminal className="w-6 h-6" />,
-      color: "border-slate-800",
-      bgColor: "bg-slate-100",
-      iconColor: "text-slate-800",
-      items: ["Validate Identifiers.Required_Item", "Build ##Activity_frame##", "save_activity"]
-    }
-  ];
-
-  const actionPrompts = [
-    {
-      key: "DOC_UPLOAD",
-      variables: ["layout_format"],
-      template: `Response to the user's prompt (##USER_PROMPT##) based on (##AGENT_RESPONSE##).
-... (content omitted for brevity) ...`
-    },
-    {
-      key: "DEFAULT",
-      variables: ["layout_format"],
-      template: `I understand you're looking for assistance with: ##USER_PROMPT## ...`
-    }
-  ];
-
-  // The provided Activity JSON data
-  const activityData = {
-    "Activity": {
-        "Name": "Daily Email Notification Activity",
-        "Role": "Orchestrator, which coordinates tasks, schedules, and multi-agent workflows to support productivity and alignment.",
-        "Description": "Provide automated email notifications for user updates.",
-        "Identifiers": {
-            "Sequence_Of_Asking": ["Object.Goal", "Motive", "Object.Desired_Outcome", "Artifacts", "Action_Sequence", "Social_Context"],
-            "Required_Items": ["Object", "Action_Sequence"]
-        },
-        "Motive": {
-            "Description": "Driver linking needs/interests to object transformation.",
-            "Core_Drive": {
-                "Description": "Primary driver.",
-                "Type": [
-                    { "Needs": "Essential need." },
-                    { "Interests": "How the need appears in practice." }
-                ]
+        /* Print Specific Styles */
+        @media print {
+            @page {
+                margin: 0.5cm;
+                size: auto;
             }
-        },
-        "Subject": {
-            "Description": "Actor(s) engaging the object.",
-            "Required_Items": ["User_Name"],
-            "Profile": "##USER_PROFILE_JSON##"
-        },
-        "Object": {
-            "Description": "Job user want agent to be done.",
-            "Required_Items": ["Goal", "Desired_Outcome"],
-            "Current_State": "Condition before transformation.",
-            "Goal": {
-                "Description": "Specific Aim to accomplish.",
-                "Desired_Outcome": {
-                    "Description": "The criteria to fulfill the job. Measurable result with when/what/where/who."
+            body {
+                background-color: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .shadow-xl, .shadow-md, .shadow-lg, .shadow-sm {
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .bg-slate-900 {
+                background-color: #1e293b !important;
+                color: white !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Icon Helper Component (FIXED for lucide@latest)
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const ref = useRef(null);
+
+            useEffect(() => {
+                // Ensure lucide is loaded and the icon exists
+                if (window.lucide && window.lucide.icons && window.lucide.icons[name]) {
+                    const iconDef = window.lucide.icons[name];
+                    
+                    // Create SVG element using Lucide's native helper
+                    const svg = window.lucide.createElement(iconDef);
+                    
+                    // Apply attributes
+                    svg.setAttribute('width', size);
+                    svg.setAttribute('height', size);
+                    
+                    // Combine default lucide classes with custom classes
+                    const existingClass = svg.getAttribute('class') || '';
+                    svg.setAttribute('class', `${existingClass} ${className}`.trim());
+                    
+                    svg.setAttribute('stroke-width', 2);
+                    
+                    // Mount to React DOM
+                    if (ref.current) {
+                        ref.current.innerHTML = ''; // Clear previous
+                        ref.current.appendChild(svg);
+                    }
+                } else {
+                    // Fallback or warning
+                    if (ref.current && !window.lucide) {
+                        console.warn("Lucide library not loaded");
+                    } else if (ref.current) {
+                        console.warn(`Icon ${name} not found`);
+                    }
                 }
-            }
-        },
-        "Artifacts": {
-            "Description": "Artifacts mediating and constraining interaction.",
-            "Utilities": [
+            }, [name, size, className]);
+
+            return <span ref={ref} className="inline-flex items-center justify-center" style={{ width: size, height: size }} />;
+        };
+
+        const SystemPromptFlow = () => {
+            // Data Structure
+            const layers = [
                 {
-                    "ID": "Mail_notificator",
-                    "Name": "Mail notificator",
-                    "Description": "Notify users by email to inform them the updates of interaction logs, group updates, new contacts added.",
-                    "Functions": [
-                        {
-                            "Name": "Event Reporter",
-                            "Description": "Summarizes interaction logs...",
-                            "Params": { "Generate_Flag": "boolean" }
-                        },
-                        {
-                            "Name": "GroupUpdate Reporter",
-                            "Description": "Compiles group updates...",
-                            "Params": { "Generate_Flag": "boolean" }
-                        },
-                        {
-                            "Name": "Contact Reporter",
-                            "Description": "Notify new contacts...",
-                            "Params": { "Generate_Flag": "boolean" }
-                        },
-                        {
-                            "Name": "Mail Sender",
-                            "Description": "Sends aggregated notifications to user.",
-                            "Params": { "email_address": "string", "subject_title": "string" },
-                            "Preliminary_Function": "Event_Reporter|Group_Report|Contact_Report"
-                        }
-                    ]
+                    id: 1,
+                    title: "Role & Identity Layer",
+                    subtitle: "定義 Agent 的人格與定位",
+                    iconName: "User",
+                    color: "border-blue-500",
+                    bgColor: "bg-blue-50",
+                    iconColor: "text-blue-600",
+                    items: ["agent_name", "user_name", "Service positioning"]
+                },
+                {
+                    id: 2,
+                    title: "Governance Rules Layer",
+                    subtitle: "對話控制與安全規範",
+                    iconName: "Shield",
+                    color: "border-amber-500",
+                    bgColor: "bg-amber-50",
+                    iconColor: "text-amber-600",
+                    items: ["Conversation flow", "Step confirmation", "Error handling", "Reasoning effort control"]
+                },
+                {
+                    id: 3,
+                    title: "Capability Boundary Layer",
+                    subtitle: "能力限制與工具邊界",
+                    iconName: "Activity",
+                    color: "border-red-500",
+                    bgColor: "bg-red-50",
+                    iconColor: "text-red-600",
+                    items: ["Artifacts.Utilities only", "No hallucinated tools", "Param & type validation"]
+                },
+                {
+                    id: 4,
+                    title: "Schema & Localization Layer",
+                    subtitle: "資料結構與語言在地化",
+                    iconName: "Layers",
+                    color: "border-emerald-500",
+                    bgColor: "bg-emerald-50",
+                    iconColor: "text-emerald-600",
+                    items: ["Human-readable names only", "No internal keys / schema paths", "Structure Name Mapping Rules"]
+                },
+                {
+                    id: 5,
+                    title: "Output Contract Layer",
+                    subtitle: "輸出格式協議",
+                    iconName: "FileJson",
+                    color: "border-purple-500",
+                    bgColor: "bg-purple-50",
+                    iconColor: "text-purple-600",
+                    items: ["Single JSON object", "Fixed field order", "message / question / summary / error"]
+                },
+                {
+                    id: 6,
+                    title: "Terminal Action Layer",
+                    subtitle: "最終執行與存檔",
+                    iconName: "Terminal",
+                    color: "border-slate-800",
+                    bgColor: "bg-slate-100",
+                    iconColor: "text-slate-800",
+                    items: ["Validate Identifiers.Required_Item", "Build ##Activity_frame##", "save_activity"]
                 }
-            ]
-        },
-        "Action_Sequence": {
-            "Description": "Goal-directed actions; operations depend on conditions/actions.",
-            "Actions": {
-                "Action": [
-                    {
-                        "Name": "Daily Briefing",
-                        "Artifact_Used": "Mail_notificator",
-                        "Description": "Execute daily email summary dispatch.",
-                        "Schedule": {
-                            "periodic_report": "true",
-                            "period": "1",
-                            "time_unit": "day"
-                        },
-                        "Operations": [
+            ];
+
+            const actionPrompts = [
+                {
+                    key: "DOC_UPLOAD",
+                    variables: ["layout_format"],
+                    template: `Response to the user's prompt (##USER_PROMPT##) based on (##AGENT_RESPONSE##).\n... (content omitted for brevity) ...`
+                },
+                {
+                    key: "DEFAULT",
+                    variables: ["layout_format"],
+                    template: `I understand you're looking for assistance with: ##USER_PROMPT## ...`
+                }
+            ];
+
+            const activityData = {
+                "Activity": {
+                    "Name": "Daily Email Notification Activity",
+                    "Role": "Orchestrator, which coordinates tasks, schedules, and multi-agent workflows.",
+                    "Description": "Provide automated email notifications for user updates.",
+                    "Identifiers": {
+                        "Sequence_Of_Asking": ["Object.Goal", "Motive", "Object.Desired_Outcome", "Artifacts", "Action_Sequence", "Social_Context"],
+                        "Required_Items": ["Object", "Action_Sequence"]
+                    },
+                    "Motive": {
+                        "Description": "Driver linking needs/interests to object transformation.",
+                        "Core_Drive": {
+                            "Description": "Primary driver.",
+                            "Type": [
+                                { "Needs": "Essential need." },
+                                { "Interests": "How the need appears in practice." }
+                            ]
+                        }
+                    },
+                    "Subject": {
+                        "Description": "Actor(s) engaging the object.",
+                        "Required_Items": ["User_Name"],
+                        "Profile": "##USER_PROFILE_JSON##"
+                    },
+                    "Object": {
+                        "Description": "Job user want agent to be done.",
+                        "Required_Items": ["Goal", "Desired_Outcome"],
+                        "Current_State": "Condition before transformation.",
+                        "Goal": {
+                            "Description": "Specific Aim to accomplish.",
+                            "Desired_Outcome": {
+                                "Description": "Criteria to fulfill the job."
+                            }
+                        }
+                    },
+                    "Artifacts": {
+                        "Description": "Artifacts mediating and constraining interaction.",
+                        "Utilities": [
                             {
-                                "Operation_Name": "Aggregated Send",
-                                "Function": "Mail_Sender",
-                                "Params": { "email_address": "user@example.com", "subject_title": "Daily Briefing" }
+                                "ID": "Mail_notificator",
+                                "Name": "Mail notificator",
+                                "Description": "Notify users by email regarding updates.",
+                                "Functions": [
+                                    {
+                                        "Name": "Event Reporter",
+                                        "Description": "Summarizes interaction logs...",
+                                        "Params": { "Generate_Flag": "boolean" }
+                                    },
+                                    {
+                                        "Name": "Mail Sender",
+                                        "Description": "Sends aggregated notifications.",
+                                        "Params": { "email_address": "string" },
+                                        "Preliminary_Function": "Event_Reporter"
+                                    }
+                                ]
                             }
                         ]
+                    },
+                    "Action_Sequence": {
+                        "Description": "Goal-directed actions; operations depend on conditions/actions.",
+                        "Actions": {
+                            "Action": [
+                                {
+                                    "Name": "Daily Briefing",
+                                    "Artifact_Used": "Mail_notificator",
+                                    "Description": "Execute daily email summary dispatch.",
+                                    "Schedule": {
+                                        "periodic_report": "true",
+                                        "period": "1",
+                                        "time_unit": "day"
+                                    },
+                                    "Operations": [
+                                        {
+                                            "Operation_Name": "Aggregated Send",
+                                            "Function": "Mail_Sender",
+                                            "Params": { "email_address": "user@example.com" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "Social_Context": {
+                        "Description": "Rules, community, division of labour.",
+                        "Community": { "Name": "Community" },
+                        "Rules": { "Name": "Rules" }
                     }
-                ]
-            }
-        },
-        "Social_Context": {
-            "Description": "Rules, community, division of labour.",
-            "Community": { "Name": "Community" },
-            "Rules": { "Name": "Rules" }
-        }
-    }
-  };
+                }
+            };
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* Header Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight sm:text-5xl mb-4">
-            System Prompt Architecture
-          </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            A visualized layer-by-layer breakdown of the global behavioral contract and action configuration for the AI Agent.
-          </p>
-        </div>
+            const handlePrint = () => {
+                window.print();
+            };
 
-        {/* The Root Block: System Prompt */}
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <div className="bg-slate-900 text-white rounded-xl shadow-xl p-8 transform transition-all hover:scale-[1.01] hover:shadow-2xl border border-slate-700 relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-500 rounded-full opacity-20 blur-xl"></div>
-            <div className="relative flex items-center justify-center flex-col text-center">
-              <Cpu className="w-12 h-12 text-indigo-400 mb-4" />
-              <h2 className="text-2xl font-bold tracking-wider uppercase">System Prompt</h2>
-              <p className="text-indigo-200 mt-2 font-mono text-sm">(Global Behavioral Contract for the Agent)</p>
-            </div>
-          </div>
-        </div>
-
-        {/* The Pipeline Flow */}
-        <div className="relative mt-0 flex flex-col items-center max-w-3xl mx-auto">
-          <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-slate-200 -ml-0.5 z-0"></div>
-
-          {layers.map((layer, index) => (
-            <React.Fragment key={layer.id}>
-              <div className="relative z-10 py-6">
-                <div className="bg-white p-2 rounded-full shadow-sm border border-slate-200 text-slate-400">
-                  <ChevronDown className="w-6 h-6 animate-bounce" />
-                </div>
-              </div>
-
-              <div className="relative z-10 w-full group">
-                <div className={`
-                  bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-                  border-l-8 ${layer.color} overflow-hidden
-                `}>
-                  <div className="flex flex-col sm:flex-row">
-                    <div className={`${layer.bgColor} p-6 flex flex-col items-center justify-center min-w-[120px] sm:border-r border-slate-100`}>
-                      <div className={`p-3 bg-white rounded-full shadow-sm ${layer.iconColor} mb-2`}>
-                        {layer.icon}
-                      </div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Layer {layer.id}</span>
+            return (
+                <div className="min-h-screen font-sans py-12 px-4 sm:px-6 lg:px-8">
+                    {/* Print Button */}
+                    <div className="fixed top-6 right-6 z-50 no-print">
+                        <button 
+                            onClick={handlePrint}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-lg transition-all font-medium"
+                        >
+                            <Icon name="Printer" size={20} />
+                            Print / Save PDF
+                        </button>
                     </div>
 
-                    <div className="p-6 flex-1">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            {layer.title}
-                          </h3>
-                          <p className="text-sm text-slate-500 mt-1">{layer.subtitle}</p>
+                    <div className="max-w-5xl mx-auto">
+                        
+                        {/* Header Section */}
+                        <div className="text-center mb-12">
+                            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight sm:text-5xl mb-4">
+                                System Prompt Architecture
+                            </h1>
+                            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                A visualized layer-by-layer breakdown of the global behavioral contract and action configuration for the AI Agent.
+                            </p>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {layer.items.map((item, idx) => (
-                          <div key={idx} className="flex items-start p-2 rounded hover:bg-slate-50 transition-colors">
-                             {layer.id === 6 ? <Box className="w-4 h-4 mt-1 mr-2 text-slate-400 shrink-0" /> : 
-                              layer.id === 3 ? <AlertCircle className="w-4 h-4 mt-1 mr-2 text-slate-400 shrink-0" /> : 
-                              <CheckCircle2 className="w-4 h-4 mt-1 mr-2 text-slate-400 shrink-0" />}
-                            <span className={`font-mono text-sm ${item.startsWith('##') ? 'bg-yellow-100 px-1 rounded text-yellow-800' : 'text-slate-700'}`}>
-                              {item}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </React.Fragment>
-          ))}
-          
-          <div className="relative z-10 pt-6 pb-12">
-             <div className="bg-slate-800 text-white px-6 py-2 rounded-full text-sm font-mono shadow-lg flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                System Logic Complete
-             </div>
-          </div>
-        </div>
-
-        {/* Activity Schema Visualization Section */}
-        <div className="mt-12 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-900 p-6 border-b border-slate-800">
-                <div className="flex items-center gap-3 mb-2">
-                    <LayoutGrid className="w-6 h-6 text-indigo-400" />
-                    <h2 className="text-2xl font-bold text-white">Activity Schema Visualization</h2>
-                </div>
-                <p className="text-slate-400 text-sm">
-                    Example Instance: <span className="text-white font-semibold">{activityData.Activity.Name}</span>
-                </p>
-                <p className="text-slate-500 text-xs mt-1 max-w-2xl">
-                    This structure represents the output of Layer 6. It is a complete definition of a task (Activity Theory) 
-                    containing the Subject, Object, Motive, and the specific Artifacts (Tools) required to execute it.
-                </p>
-            </div>
-
-            <div className="p-6 bg-slate-50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    {/* Motive - Why */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-red-100 hover:shadow-md transition-all">
-                        <div className="flex items-center gap-2 mb-3 text-red-600">
-                            <Heart className="w-5 h-5" />
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Motive (Why)</h3>
-                        </div>
-                        <div className="text-sm text-slate-600 mb-3">
-                            {activityData.Activity.Motive.Description}
-                        </div>
-                        <div className="space-y-2">
-                            <div className="bg-red-50 p-2 rounded text-xs font-mono text-red-800">
-                                Need: Essential need
-                            </div>
-                            <div className="bg-red-50 p-2 rounded text-xs font-mono text-red-800">
-                                Interest: How need appears
+                        {/* The Root Block: System Prompt */}
+                        <div className="relative z-10 max-w-3xl mx-auto">
+                            <div className="bg-slate-900 text-white rounded-xl shadow-xl p-8 border border-slate-700 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-500 rounded-full opacity-20 blur-xl"></div>
+                                <div className="relative flex items-center justify-center flex-col text-center">
+                                    <Icon name="Cpu" size={48} className="text-indigo-400 mb-4" />
+                                    <h2 className="text-2xl font-bold tracking-wider uppercase">System Prompt</h2>
+                                    <p className="text-indigo-200 mt-2 font-mono text-sm">(Global Behavioral Contract for the Agent)</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Subject - Who */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-blue-100 hover:shadow-md transition-all">
-                         <div className="flex items-center gap-2 mb-3 text-blue-600">
-                            <User className="w-5 h-5" />
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Subject (Who)</h3>
-                        </div>
-                        <div className="text-sm text-slate-600 mb-3">
-                            {activityData.Activity.Subject.Description}
-                        </div>
-                        <div className="flex items-center gap-2 bg-blue-50 p-2 rounded text-xs text-blue-800 font-mono">
-                            <Variable className="w-3 h-3" />
-                            User Profile JSON
-                        </div>
-                    </div>
+                        {/* The Pipeline Flow */}
+                        <div className="relative mt-0 flex flex-col items-center max-w-3xl mx-auto">
+                            {/* Vertical Line */}
+                            <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-slate-200 -ml-0.5 z-0"></div>
 
-                    {/* Object - What */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-emerald-100 hover:shadow-md transition-all">
-                         <div className="flex items-center gap-2 mb-3 text-emerald-600">
-                            <Target className="w-5 h-5" />
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Object (What)</h3>
-                        </div>
-                        <div className="text-sm text-slate-600 mb-3">
-                            {activityData.Activity.Object.Description}
-                        </div>
-                        <div className="space-y-2">
-                             <div className="border border-emerald-100 p-2 rounded">
-                                <span className="text-xs font-bold text-emerald-700 block">GOAL</span>
-                                <span className="text-xs text-slate-500">{activityData.Activity.Object.Goal.Description}</span>
-                             </div>
-                             <div className="border border-emerald-100 p-2 rounded bg-emerald-50">
-                                <span className="text-xs font-bold text-emerald-700 block">OUTCOME</span>
-                                <span className="text-xs text-emerald-800">{activityData.Activity.Object.Goal.Desired_Outcome.Description}</span>
-                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Artifacts & Actions - How */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    {/* Artifacts / Utilities */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                         <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b border-slate-100 pb-2">
-                            <Wrench className="w-5 h-5" />
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Artifacts & Utilities (How)</h3>
-                        </div>
-                        <div className="space-y-4">
-                            {activityData.Activity.Artifacts.Utilities.map((util, i) => (
-                                <div key={i} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="font-bold text-slate-700 text-sm">{util.Name}</span>
-                                        <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-mono">{util.ID}</span>
+                            {layers.map((layer, index) => (
+                                <React.Fragment key={layer.id}>
+                                    <div className="relative z-10 py-6">
+                                        <div className="bg-white p-2 rounded-full shadow-sm border border-slate-200 text-slate-400">
+                                            <Icon name="ChevronDown" size={24} className="animate-bounce" />
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-slate-500 mb-3">{util.Description}</p>
-                                    
-                                    <div className="space-y-2 pl-2 border-l-2 border-slate-200">
-                                        {util.Functions.map((func, j) => (
-                                            <div key={j} className="text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <Zap className="w-3 h-3 text-amber-500" />
-                                                    <span className="font-mono font-semibold text-slate-700">{func.Name}</span>
+
+                                    <div className="relative z-10 w-full group page-break-inside-avoid">
+                                        <div className={`
+                                            bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
+                                            border-l-8 ${layer.color} overflow-hidden
+                                        `}>
+                                            <div className="flex flex-col sm:flex-row">
+                                                <div className={`${layer.bgColor} p-6 flex flex-col items-center justify-center min-w-[120px] sm:border-r border-slate-100`}>
+                                                    <div className={`p-3 bg-white rounded-full shadow-sm ${layer.iconColor} mb-2`}>
+                                                        <Icon name={layer.iconName} size={24} />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Layer {layer.id}</span>
                                                 </div>
-                                                <div className="pl-5 text-slate-500 truncate">{func.Description}</div>
+
+                                                <div className="p-6 flex-1">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div>
+                                                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                                {layer.title}
+                                                            </h3>
+                                                            <p className="text-sm text-slate-500 mt-1">{layer.subtitle}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {layer.items.map((item, idx) => (
+                                                            <div key={idx} className="flex items-start p-2 rounded hover:bg-slate-50 transition-colors">
+                                                                <div className="mr-2 mt-1 text-slate-400 shrink-0">
+                                                                    {layer.id === 6 ? <Icon name="Box" size={16} /> : 
+                                                                     layer.id === 3 ? <Icon name="AlertCircle" size={16} /> : 
+                                                                     <Icon name="CheckCircle2" size={16} />}
+                                                                </div>
+                                                                <span className={`font-mono text-sm break-all ${item.startsWith('##') ? 'bg-yellow-100 px-1 rounded text-yellow-800' : 'text-slate-700'}`}>
+                                                                    {item}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ))}
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            ))}
+                            
+                            <div className="relative z-10 pt-6 pb-12">
+                                <div className="bg-slate-800 text-white px-6 py-2 rounded-full text-sm font-mono shadow-lg flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                    System Logic Complete
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Activity Schema Visualization Section */}
+                        <div className="mt-12 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden break-before-page">
+                            <div className="bg-slate-900 p-6 border-b border-slate-800">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <Icon name="LayoutGrid" size={24} className="text-indigo-400" />
+                                    <h2 className="text-2xl font-bold text-white">Activity Schema Visualization</h2>
+                                </div>
+                                <p className="text-slate-400 text-sm">
+                                    Example Instance: <span className="text-white font-semibold">{activityData.Activity.Name}</span>
+                                </p>
+                                <p className="text-slate-500 text-xs mt-1 max-w-2xl">
+                                    Output of Layer 6: A complete definition of a task (Activity Theory).
+                                </p>
+                            </div>
+
+                            <div className="p-6 bg-slate-50">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                    {/* Motive - Why */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-red-100">
+                                        <div className="flex items-center gap-2 mb-3 text-red-600">
+                                            <Icon name="Heart" size={20} />
+                                            <h3 className="font-bold uppercase tracking-wider text-sm">Motive (Why)</h3>
+                                        </div>
+                                        <div className="text-sm text-slate-600 mb-3">
+                                            {activityData.Activity.Motive.Description}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="bg-red-50 p-2 rounded text-xs font-mono text-red-800">
+                                                Need: Essential need
+                                            </div>
+                                            <div className="bg-red-50 p-2 rounded text-xs font-mono text-red-800">
+                                                Interest: How need appears
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Subject - Who */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-blue-100">
+                                         <div className="flex items-center gap-2 mb-3 text-blue-600">
+                                            <Icon name="User" size={20} />
+                                            <h3 className="font-bold uppercase tracking-wider text-sm">Subject (Who)</h3>
+                                        </div>
+                                        <div className="text-sm text-slate-600 mb-3">
+                                            {activityData.Activity.Subject.Description}
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-blue-50 p-2 rounded text-xs text-blue-800 font-mono">
+                                            <Icon name="Variable" size={12} />
+                                            User Profile JSON
+                                        </div>
+                                    </div>
+
+                                    {/* Object - What */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-emerald-100">
+                                         <div className="flex items-center gap-2 mb-3 text-emerald-600">
+                                            <Icon name="Target" size={20} />
+                                            <h3 className="font-bold uppercase tracking-wider text-sm">Object (What)</h3>
+                                        </div>
+                                        <div className="text-sm text-slate-600 mb-3">
+                                            {activityData.Activity.Object.Description}
+                                        </div>
+                                        <div className="space-y-2">
+                                             <div className="border border-emerald-100 p-2 rounded">
+                                                <span className="text-xs font-bold text-emerald-700 block">GOAL</span>
+                                                <span className="text-xs text-slate-500">{activityData.Activity.Object.Goal.Description}</span>
+                                             </div>
+                                             <div className="border border-emerald-100 p-2 rounded bg-emerald-50">
+                                                <span className="text-xs font-bold text-emerald-700 block">OUTCOME</span>
+                                                <span className="text-xs text-emerald-800">{activityData.Activity.Object.Goal.Desired_Outcome.Description}</span>
+                                             </div>
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    {/* Action Sequence */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                         <div className="flex items-center gap-2 mb-4 text-orange-600 border-b border-slate-100 pb-2">
-                            <PlayCircle className="w-5 h-5" />
-                            <h3 className="font-bold uppercase tracking-wider text-sm">Action Sequence</h3>
-                        </div>
-                        
-                        <div className="relative pl-4 space-y-6">
-                            {/* Timeline line */}
-                            <div className="absolute top-2 left-0 bottom-2 w-0.5 bg-slate-200"></div>
-
-                            {activityData.Activity.Action_Sequence.Actions.Action.map((action, i) => (
-                                <div key={i} className="relative">
-                                    {/* Timeline Dot */}
-                                    <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-orange-400 ring-4 ring-white"></div>
-                                    
-                                    <div className="bg-orange-50/50 rounded-lg p-3 border border-orange-100">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className="font-bold text-slate-800 text-sm">{action.Name}</span>
-                                            {action.Schedule && (
-                                                <div className="flex items-center text-[10px] text-orange-700 bg-orange-100 px-2 py-1 rounded">
-                                                    <Clock className="w-3 h-3 mr-1" />
-                                                    Every {action.Schedule.period} {action.Schedule.time_unit}
-                                                </div>
-                                            )}
+                                {/* Artifacts & Actions - How */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    {/* Artifacts / Utilities */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                                         <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b border-slate-100 pb-2">
+                                            <Icon name="Wrench" size={20} />
+                                            <h3 className="font-bold uppercase tracking-wider text-sm">Artifacts & Utilities (How)</h3>
                                         </div>
-                                        <p className="text-xs text-slate-600 mb-3">{action.Description}</p>
+                                        <div className="space-y-4">
+                                            {activityData.Activity.Artifacts.Utilities.map((util, i) => (
+                                                <div key={i} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="font-bold text-slate-700 text-sm">{util.Name}</span>
+                                                        <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-mono">{util.ID}</span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 mb-3">{util.Description}</p>
+                                                    
+                                                    <div className="space-y-2 pl-2 border-l-2 border-slate-200">
+                                                        {util.Functions.map((func, j) => (
+                                                            <div key={j} className="text-xs">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-amber-500"><Icon name="Zap" size={12} /></span>
+                                                                    <span className="font-mono font-semibold text-slate-700">{func.Name}</span>
+                                                                </div>
+                                                                <div className="pl-5 text-slate-500 truncate">{func.Description}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Sequence */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                                         <div className="flex items-center gap-2 mb-4 text-orange-600 border-b border-slate-100 pb-2">
+                                            <Icon name="PlayCircle" size={20} />
+                                            <h3 className="font-bold uppercase tracking-wider text-sm">Action Sequence</h3>
+                                        </div>
                                         
-                                        <div className="bg-white rounded border border-orange-100 p-2">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Operations</div>
-                                            {action.Operations.map((op, j) => (
-                                                <div key={j} className="flex items-center justify-between text-xs font-mono text-slate-600 bg-slate-50 p-1 rounded mb-1 last:mb-0">
-                                                    <span>{op.Operation_Name}</span>
-                                                    <span className="text-orange-500">→ {op.Function}</span>
+                                        <div className="relative pl-4 space-y-6">
+                                            {/* Timeline line */}
+                                            <div className="absolute top-2 left-0 bottom-2 w-0.5 bg-slate-200"></div>
+
+                                            {activityData.Activity.Action_Sequence.Actions.Action.map((action, i) => (
+                                                <div key={i} className="relative">
+                                                    {/* Timeline Dot */}
+                                                    <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-orange-400 ring-4 ring-white"></div>
+                                                    
+                                                    <div className="bg-orange-50/50 rounded-lg p-3 border border-orange-100">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <span className="font-bold text-slate-800 text-sm">{action.Name}</span>
+                                                            {action.Schedule && (
+                                                                <div className="flex items-center text-[10px] text-orange-700 bg-orange-100 px-2 py-1 rounded">
+                                                                    <span className="mr-1"><Icon name="Clock" size={12} /></span>
+                                                                    Every {action.Schedule.period} {action.Schedule.time_unit}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-slate-600 mb-3">{action.Description}</p>
+                                                        
+                                                        <div className="bg-white rounded border border-orange-100 p-2">
+                                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Operations</div>
+                                                            {action.Operations.map((op, j) => (
+                                                                <div key={j} className="flex items-center justify-between text-xs font-mono text-slate-600 bg-slate-50 p-1 rounded mb-1 last:mb-0">
+                                                                    <span>{op.Operation_Name}</span>
+                                                                    <span className="text-orange-500">→ {op.Function}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+
+                                {/* Social Context - Where */}
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                                     <div className="flex items-center gap-3">
+                                         <div className="bg-purple-100 p-2 rounded-full text-purple-600">
+                                             <Icon name="Users" size={20} />
+                                         </div>
+                                         <div>
+                                             <h3 className="font-bold text-slate-700 text-sm">Social Context (Where)</h3>
+                                             <p className="text-xs text-slate-500">{activityData.Activity.Social_Context.Description}</p>
+                                         </div>
+                                     </div>
+                                </div>
+                            </div>
                         </div>
+                        
+                        {/* Action Prompts Section */}
+                        <div className="mt-12 border-t-2 border-dashed border-slate-300 pt-12 relative break-before-page">
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-50 px-4 flex items-center text-slate-400 font-medium">
+                             <span className="mr-2"><Icon name="Database" size={20} /></span>
+                             External Configuration
+                          </div>
+                          
+                          <div className="mb-8">
+                             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                                <Icon name="FileText" size={28} className="text-indigo-600" />
+                                Action Prompts Configuration
+                             </h2>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                             {actionPrompts.map((prompt) => (
+                                <div key={prompt.key} className="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col">
+                                   <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                                      <div className="flex items-center gap-2">
+                                        <Icon name="Code" size={16} className="text-indigo-500" />
+                                        <span className="font-bold font-mono text-slate-700">{prompt.key}</span>
+                                      </div>
+                                   </div>
+                                   <div className="p-4 flex-1">
+                                        <pre className="font-mono text-xs text-slate-600 bg-slate-50 p-3 rounded border border-slate-100 whitespace-pre-wrap max-h-32 overflow-hidden">
+                                           {prompt.template}
+                                        </pre>
+                                   </div>
+                                </div>
+                             ))}
+                          </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="mt-16 text-center border-t border-slate-200 pt-8 mb-12">
+                           <p className="text-slate-400 text-sm">
+                             Architecture designed for robust agentic workflows & templated execution.
+                           </p>
+                           <p className="text-slate-300 text-xs mt-2">Generated via System Prompt Architecture Tool</p>
+                        </div>
+
                     </div>
                 </div>
+            );
+        };
 
-                {/* Social Context - Where */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                         <div className="bg-purple-100 p-2 rounded-full text-purple-600">
-                             <Users className="w-5 h-5" />
-                         </div>
-                         <div>
-                             <h3 className="font-bold text-slate-700 text-sm">Social Context (Where)</h3>
-                             <p className="text-xs text-slate-500">{activityData.Activity.Social_Context.Description}</p>
-                         </div>
-                     </div>
-                     <div className="flex gap-2">
-                        <span className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full font-medium">Community Rules</span>
-                        <span className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full font-medium">Division of Labour</span>
-                     </div>
-                </div>
-            </div>
-        </div>
-        
-        {/* Action Prompts Section (Existing) */}
-        <div className="mt-12 border-t-2 border-dashed border-slate-300 pt-12 relative">
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-50 px-4 flex items-center text-slate-400 font-medium">
-             <Database className="w-5 h-5 mr-2" />
-             External Configuration
-          </div>
-          
-          <div className="mb-8">
-             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                <FileText className="w-7 h-7 text-indigo-600" />
-                Action Prompts Configuration
-             </h2>
-             <p className="text-slate-600 mt-2 max-w-4xl">
-               This registry defines the templates used by the Agent to format its final response.
-             </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-             {/* Only showing a subset for brevity in this merged view, real app would map all */}
-             {actionPrompts.map((prompt) => (
-                <div key={prompt.key} className="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col">
-                   <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Code className="w-4 h-4 text-indigo-500" />
-                        <span className="font-bold font-mono text-slate-700">{prompt.key}</span>
-                      </div>
-                      {prompt.variables.length > 0 && (
-                        <div className="flex gap-1">
-                           {prompt.variables.map(v => (
-                             <span key={v} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-mono flex items-center">
-                               <Variable className="w-3 h-3 mr-1" />
-                               {v}
-                             </span>
-                           ))}
-                        </div>
-                      )}
-                   </div>
-                   <div className="p-4 flex-1">
-                        <pre className="font-mono text-xs text-slate-600 bg-slate-50 p-3 rounded border border-slate-100 whitespace-pre-wrap max-h-32 overflow-hidden">
-                           {prompt.template}
-                        </pre>
-                   </div>
-                </div>
-             ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-16 text-center border-t border-slate-200 pt-8">
-           <p className="text-slate-400 text-sm">
-             Architecture designed for robust agentic workflows & templated execution.
-           </p>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-export default SystemPromptFlow;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SystemPromptFlow />);
+    </script>
+</body>
+</html>
