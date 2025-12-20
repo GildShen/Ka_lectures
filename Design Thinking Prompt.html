@@ -3,211 +3,422 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prompt 設計結構分析報告</title>
+    <title>Prompt 設計結構分析</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #f8fafc;
+            height: 100vh;
+            overflow: hidden;
         }
-        .code-font {
+
+        .font-mono {
             font-family: 'JetBrains Mono', monospace;
         }
-        .card {
-            transition: all 0.3s ease;
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
         }
-        .section-tag {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 700;
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Interactive Highlights in Code */
+        .interactive-code {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+            padding: 2px 0;
+            display: block; /* Ensure block layout for easier reading */
+            margin-bottom: 0.5rem;
+        }
+
+        .interactive-code:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+            border-bottom-color: #818cf8;
+        }
+
+        .interactive-code.active {
+            background-color: rgba(99, 102, 241, 0.2);
+            border-bottom-color: #4f46e5;
+            color: #1e1b4b;
+            font-weight: 600;
+        }
+        
+        /* Badge for code sections */
+        .code-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 10px;
+            margin-right: 6px;
+            vertical-align: middle;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        /* Analysis Card Styles */
+        .analysis-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 4px solid transparent;
+            opacity: 0.7;
+            transform: scale(0.98);
+        }
+
+        .analysis-card.active {
+            border-left-color: #4f46e5;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
 </head>
-<body class="text-gray-800">
+<body class="flex flex-col h-screen text-slate-800">
 
-    <!-- Navbar -->
-    <nav class="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid fa-robot text-teal-400 text-xl"></i>
-                <h1 class="text-xl font-bold tracking-wide">AI Agent Prompt 分析報告</h1>
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm shrink-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-wand-magic-sparkles text-white text-sm"></i>
             </div>
-            <div class="text-sm text-slate-400">System Prompt Architecture</div>
+            <div>
+                <h1 class="font-bold text-lg text-slate-900">Prompt 設計解構工作台</h1>
+                <p class="text-xs text-slate-500 hidden sm:block">點擊左側程式碼區塊，查看右側對應的設計邏輯分析</p>
+            </div>
         </div>
-    </nav>
+        <div class="flex items-center gap-2">
+            <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100 font-medium">
+                <i class="fa-solid fa-eye mr-1"></i> 互動模式 (完整版)
+            </span>
+        </div>
+    </header>
 
-    <main class="container mx-auto px-4 py-8">
+    <!-- Main Content -->
+    <div class="flex flex-1 overflow-hidden">
         
-        <!-- Intro Header -->
-        <header class="mb-10 text-center">
-            <h2 class="text-3xl font-bold text-slate-800 mb-2">Prompt 結構解構與意圖分析</h2>
-            <p class="text-slate-600 max-w-2xl mx-auto">該 Prompt 旨在構建一個能夠維持「狀態」、執行「工具調用」並輸出「結構化 JSON」的自動化代理人。以下是其五大核心模組分析。</p>
-        </header>
-
-        <!-- Analysis Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- Left Column: High Level Strategy -->
-            <div class="lg:col-span-4 space-y-6">
-                <!-- Module 1: Templating -->
-                <div class="card bg-white rounded-xl p-6 border-l-4 border-blue-500 shadow-sm">
-                    <div class="flex items-center gap-2 mb-3 text-blue-600">
-                        <i class="fa-solid fa-code-branch"></i>
-                        <span class="section-tag">Module 1: 變數注入</span>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">動態上下文 (Jinja2 Style)</h3>
-                    <p class="text-sm text-gray-600 mb-3">Prompt 使用雙大括號 <code>{{variable}}</code> 作為佔位符。這意味著 Prompt 本身是一個模板，後端程式會在發送給 LLM 之前動態填入數據。</p>
-                    <ul class="text-sm space-y-2 bg-slate-50 p-3 rounded border border-slate-200 code-font text-slate-700">
-                        <li>{{agent_name}} <span class="text-gray-400">// AI 名字</span></li>
-                        <li>{{user_name}} <span class="text-gray-400">// 用戶名字</span></li>
-                        <li>{{activity_json}} <span class="text-gray-400">// 當前任務狀態</span></li>
-                        <li>{{context_data}} <span class="text-gray-400">// RAG 檢索資料</span></li>
-                    </ul>
-                </div>
-
-                <!-- Module 2: Role Definition -->
-                <div class="card bg-white rounded-xl p-6 border-l-4 border-purple-500 shadow-sm">
-                    <div class="flex items-center gap-2 mb-3 text-purple-600">
-                        <i class="fa-solid fa-user-astronaut"></i>
-                        <span class="section-tag">Module 2: 角色定位</span>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">目標導向代理人</h3>
-                    <p class="text-sm text-gray-600">
-                        定義了 AI 的核心任務是「協助用戶達成目標」。
-                        <br><br>
-                        <strong>關鍵設計：</strong> 要求 AI 在每個 Session 開始時「自我介紹」並「列出可用功能」。這有助於讓用戶快速了解 AI 的邊界。
-                    </p>
-                </div>
+        <!-- Left Panel: Prompt Source -->
+        <div class="w-full md:w-3/5 bg-[#fcfcfc] flex flex-col border-r border-gray-200">
+            <div class="px-4 py-2 bg-gray-100 border-b border-gray-200 flex justify-between items-center text-xs text-gray-500 font-mono">
+                <span><i class="fa-regular fa-file-code mr-1"></i> System_Prompt.md</span>
+                <span>唯讀</span>
             </div>
-
-            <!-- Right Column: Deep Dive -->
-            <div class="lg:col-span-8 space-y-6">
+            <div class="flex-1 overflow-y-auto p-6 font-mono text-sm leading-relaxed text-slate-600 relative" id="prompt-container">
+                <!-- Line Numbers (Visual Only) -->
+                <div class="absolute left-0 top-6 bottom-0 w-8 text-right pr-2 text-gray-300 select-none text-xs leading-relaxed border-r border-gray-100 hidden sm:block">
+                    1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>...
+                </div>
                 
-                <!-- Module 3: Operational Rules (Guardrails) -->
-                <div class="card bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-4 text-red-500">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span class="section-tag">Module 3: 行為準則與護欄 (Guardrails)</span>
+                <div class="sm:pl-8">
+                    <!-- Section 1: Role -->
+                    <div class="interactive-code group" onclick="activateSection(1)" id="code-1">
+                        <span class="code-badge bg-blue-500 group-hover:bg-blue-600 transition-colors">1</span>
+                        <span class="text-purple-700">You are</span> <span class="text-orange-600">{{agent_name}}</span>, assisting with <span class="text-orange-600">{{user_name}}</span> to achieve user's goal based on the following principles.
                     </div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-4">規則解析</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-red-50 p-4 rounded-lg">
-                            <h4 class="font-bold text-red-700 mb-2"><i class="fa-solid fa-ban mr-2"></i>防幻覺 (Anti-Hallucination)</h4>
-                            <p class="text-sm text-gray-700">
-                                規則明確指出：<span class="font-semibold">"Only suggest actions specifically defined in Artifacts.Utilities"</span>。
-                                <br>
-                                AI 被禁止發明不存在的 API 參數或功能，這是 Tool Use 場景中最關鍵的安全設定。
+
+                    <!-- Section 2: Rules -->
+                    <div class="interactive-code group" onclick="activateSection(2)" id="code-2">
+                        <span class="code-badge bg-green-500 group-hover:bg-green-600 transition-colors">2</span>
+                        <span class="text-blue-700 font-bold"># Rules</span><br>
+                        - Open each session with a polite greeting...<br>
+                        - <span class="text-red-600">Review user and agent profiles</span> from the Subject section...<br>
+                        - Before asking questions... provide a <span class="text-purple-600">high-level summary</span>...<br>
+                        - When presenting utilities... use the "Name" field... (never IDs or schema keys).<br>
+                        - <span class="text-red-600">Clearly state if a stated Goal cannot be fulfilled</span>...<br>
+                        - Progress the conversation <span class="text-purple-600">one step at a time</span>...<br>
+                        - <span class="text-red-600">validate the outcome</span> in 1–2 sentences...<br>
+                        - Only suggest actions specifically defined in Artifacts.Utilities...<br>
+                        - Respond to every user input within 10 seconds.
+                    </div>
+
+                    <!-- Section 3: Example -->
+                    <div class="interactive-code group" onclick="activateSection(3)" id="code-3">
+                        <span class="code-badge bg-purple-500 group-hover:bg-purple-600 transition-colors">3</span>
+                        <span class="text-blue-700 font-bold">Example:</span><br>
+                        <span class="text-gray-400">```json</span><br>
+                        {<br>
+                        &nbsp;&nbsp;"Activity": {<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Name": "Service",<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Motive": { ... },<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Object": { "Goal": "Daily email summary..." }<br>
+                        &nbsp;&nbsp;}<br>
+                        }<br>
+                        <span class="text-gray-400">```</span>
+                    </div>
+
+                    <!-- Section 4: Output Format -->
+                    <div class="interactive-code group" onclick="activateSection(4)" id="code-4">
+                        <span class="code-badge bg-orange-500 group-hover:bg-orange-600 transition-colors">4</span>
+                        <span class="text-blue-700 font-bold">## Output Format</span><br>
+                        All replies must be a <span class="text-purple-600">single JSON object</span> with these fields:<br>
+                        1. <span class="text-green-700">"message"</span>: string – Instruction for user<br>
+                        2. <span class="text-green-700">"question"</span>: string or null<br>
+                        3. <span class="text-green-700">"summary"</span>: string or null<br>
+                        4. <span class="text-green-700">"error"</span>: string or null
+                    </div>
+
+                    <!-- Section 5: Tool Call Handling -->
+                    <div class="interactive-code group" onclick="activateSection(5)" id="code-5">
+                        <span class="code-badge bg-red-500 group-hover:bg-red-600 transition-colors">5</span>
+                        <span class="text-blue-700 font-bold">### Tool Call Handling</span><br>
+                        - Definition of how to call the tool<br>
+                        - On the final turn... submit via <span class="text-orange-600">`save_activity`</span>. If unsuccessful, set "error" to "SAVE_FAILED".<br>
+                        - If a user requests an email test, invoke <span class="text-orange-600">`test_email`</span>.<br>
+                        - If user wants to check current status, invoke tool <span class="text-orange-600">`get_current_activity`</span>.
+                    </div>
+
+                    <!-- Section 6: Utility and Parameter Clarification -->
+                    <div class="interactive-code group" onclick="activateSection(6)" id="code-6">
+                        <span class="code-badge bg-teal-500 group-hover:bg-teal-600 transition-colors">6</span>
+                        <span class="text-blue-700 font-bold">### Utility and Parameter Clarification</span><br>
+                        If Activity.Artifacts.Utilities are not defined or are ambiguous, <span class="text-red-600">request explicit definitions</span>...<br>
+                        <span class="text-blue-700 font-bold">### Example Minimal Utility Definition</span><br>
+                        A minimal utility definition should specify:<br>
+                        - "Name": string<br>
+                        - "Function": string<br>
+                        - "Params": object<br>
+                        <span class="text-gray-400">```json</span><br>
+                        { "Name": "Mail notificator", "Function": "Mail_Notificator", ... }<br>
+                        <span class="text-gray-400">```</span>
+                    </div>
+
+                    <!-- Section 7: Output Configuration & Data Injection -->
+                    <div class="interactive-code group" onclick="activateSection(7)" id="code-7">
+                        <span class="code-badge bg-pink-500 group-hover:bg-pink-600 transition-colors">7</span>
+                        <span class="text-blue-700 font-bold">### Output Configuration</span><br>
+                        - When invoking tools, do not output text.<br>
+                        - Apply these settings:<br>
+                        <span class="text-orange-600">{{extra_settings}}</span><br><br>
+                        <span class="text-blue-700 font-bold">### Context_Data</span><br>
+                        <span class="text-orange-600">{{context_data}}</span><br><br>
+                        <span class="text-blue-700 font-bold">### Community_Data</span><br>
+                        <span class="text-orange-600">{{community_data}}</span><br><br>
+                        <span class="text-blue-700 font-bold">##Activity_frame##</span><br>
+                        <span class="text-orange-600">{{activity_json}}</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Analysis -->
+        <div class="w-full md:w-2/5 bg-gray-50 flex flex-col border-l border-gray-200 shadow-xl z-20">
+            <div class="px-6 py-4 bg-white border-b border-gray-200">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass-chart text-indigo-500"></i>
+                    解析面板
+                </h2>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-100" id="analysis-container">
+                
+                <!-- Welcome State -->
+                <div id="welcome-message" class="text-center py-10 text-gray-500">
+                    <div class="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                        <i class="fa-regular fa-hand-pointer text-2xl text-indigo-400 animate-pulse"></i>
+                    </div>
+                    <p>請點擊左側 Prompt 的內容<br>以查看詳細的結構分析。</p>
+                </div>
+
+                <!-- Analysis Cards -->
+                
+                <!-- Card 1 -->
+                <div id="card-1" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-blue-100 text-blue-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">角色定義與動態注入</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                這是 Prompt 的開場 (System Message)。使用 <strong>變數插值 (Placeholders)</strong> 技術（如 <code>{{agent_name}}</code>），讓同一份 Prompt 能適應不同場景。
                             </p>
-                        </div>
-                        <div class="bg-indigo-50 p-4 rounded-lg">
-                            <h4 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-list-check mr-2"></i>思維鏈 (CoT)</h4>
-                            <p class="text-sm text-gray-700">
-                                要求在執行動作前提供 <span class="font-semibold">"high-level summary"</span> 和 <span class="font-semibold">"concise checklist"</span>。
-                                <br>
-                                這強制模型先進行規劃再執行，提高複雜任務的成功率。
-                            </p>
-                        </div>
-                        <div class="bg-amber-50 p-4 rounded-lg">
-                            <h4 class="font-bold text-amber-700 mb-2"><i class="fa-solid fa-bug mr-2"></i>錯誤處理</h4>
-                            <p class="text-sm text-gray-700">
-                                設定了明確的 Error Flags，例如 <code>AMBIGUOUS_COMPLEXITY</code> 或 <code>SCHEMA_MISMATCH</code>。這讓前端 UI 可以捕捉這些錯誤並顯示適當的引導，而不是讓 AI 胡亂回答。
-                            </p>
-                        </div>
-                        <div class="bg-teal-50 p-4 rounded-lg">
-                            <h4 class="font-bold text-teal-700 mb-2"><i class="fa-solid fa-user-tag mr-2"></i>用戶體驗優化</h4>
-                            <p class="text-sm text-gray-700">
-                                強制要求使用 <code>Activity.Artifacts</code> 中的 "Human-readable names" 而非內部 ID。這是為了確保對話自然，不會洩露後端資料庫結構。
-                            </p>
+                            <div class="bg-blue-50 text-blue-800 text-xs px-3 py-2 rounded border border-blue-100">
+                                <strong>目的：</strong> 確立 AI 身份並建立對話語境 (Context)。
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Module 4: Output Protocol -->
-                <div class="card bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-4 text-green-600">
-                        <i class="fa-solid fa-file-code"></i>
-                        <span class="section-tag">Module 4: 輸出協議 (Output Protocol)</span>
-                    </div>
-                    <div class="flex flex-col md:flex-row gap-6">
-                        <div class="flex-1">
-                            <h3 class="text-lg font-bold mb-2">JSON Enforced Mode</h3>
-                            <p class="text-sm text-gray-600 mb-4">
-                                此 Prompt 不允許 AI 輸出自由文本，而是強制要求 <strong>Single JSON Object</strong>。這通常是為了讓應用程式（App/Web）能夠直接解析回應。
+                <!-- Card 2 -->
+                <div id="card-2" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-green-100 text-green-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">行為準則 (Rules) - 核心邏輯</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                這是 Prompt 最關鍵的部分。它規範了 AI 的「思考方式」。重點包含：
                             </p>
-                            <ul class="space-y-2 text-sm">
-                                <li class="flex items-center gap-2">
-                                    <span class="bg-slate-200 px-2 py-1 rounded text-xs font-mono font-bold">message</span>
-                                    <span>給用戶看的 Markdown 訊息。</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="bg-slate-200 px-2 py-1 rounded text-xs font-mono font-bold">question</span>
-                                    <span>引導對話的下一個問題（Slot Filling）。</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="bg-slate-200 px-2 py-1 rounded text-xs font-mono font-bold">error</span>
-                                    <span>狀態檢查，若有缺漏參數則報錯。</span>
-                                </li>
+                            <ul class="text-sm text-slate-600 space-y-2 mb-3 list-disc list-inside bg-gray-50 p-3 rounded">
+                                <li><strong>防幻覺：</strong> 只能使用定義好的工具，不能瞎掰。</li>
+                                <li><strong>思維鏈 (CoT)：</strong> 要求先規劃 (Plan) 再行動。</li>
+                                <li><strong>用戶體驗：</strong> 強制使用人類可讀名稱。</li>
                             </ul>
-                        </div>
-                        <div class="flex-1 bg-slate-900 rounded-lg p-4 text-xs text-green-400 font-mono overflow-x-auto">
-                            <div class="mb-2 text-slate-500">// 預期輸出範例</div>
-{
-  "message": "I can help you setup the daily report.",
-  "question": "What time would you like to receive it?",
-  "summary": null,
-  "error": null
-}
+                            <div class="bg-green-50 text-green-800 text-xs px-3 py-2 rounded border border-green-100">
+                                <strong>目的：</strong> 確保 AI 的行為可控、安全且符合業務邏輯。
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Module 5: Few-Shot Example -->
-                <div class="card bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-4 text-orange-500">
-                        <i class="fa-solid fa-chalkboard-user"></i>
-                        <span class="section-tag">Module 5: 狀態範例 (Few-Shot Learning)</span>
+                <!-- Card 3 -->
+                <div id="card-3" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-purple-100 text-purple-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">3</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">少樣本學習 (Few-Shot Example)</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                提供一個完整的 JSON 資料結構範例。這比用文字描述規則更有效，能讓 AI 直接「模仿」正確的輸出格式。
+                            </p>
+                            <div class="bg-purple-50 text-purple-800 text-xs px-3 py-2 rounded border border-purple-100">
+                                <strong>目的：</strong> 解決 Schema Alignment (資料結構對齊) 問題，降低解析錯誤。
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Activity Frame 狀態機</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                        Prompt 中提供了一個巨大的 JSON 範例 (<code>Activity</code>, <code>Motive</code>, <code>Object</code>, <code>Action_Sequence</code>)。
-                    </p>
-                    <div class="bg-orange-50 border-l-4 border-orange-400 p-4">
-                        <p class="text-sm text-orange-900 font-semibold">
-                            設計意圖：
-                        </p>
-                        <p class="text-sm text-orange-800 mt-1">
-                            這不僅是範例，更是定義了 Agent 的<strong>「記憶結構」</strong>。AI 需要在對話過程中，將用戶的意圖（Needs/Interests）填入這個結構，最終生成一個完整的 <code>Action_Sequence</code> 供後端執行。這是一種 "Slot Filling"（槽位填充）的高級應用。
-                        </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div id="card-4" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-orange-100 text-orange-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">4</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">結構化輸出規範</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                採用 <strong>前後端分離</strong> 的思維。AI 輸出的不是直接給用戶看的文字，而是一個包含 <code>message</code> (前端顯示用) 和 <code>summary</code> (系統紀錄用) 的 JSON 物件。
+                            </p>
+                            <div class="bg-orange-50 text-orange-800 text-xs px-3 py-2 rounded border border-orange-100">
+                                <strong>目的：</strong> 便於前端程式解析 AI 回應，並構建豐富的 UI 介面。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5 -->
+                <div id="card-5" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-red-100 text-red-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">5</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">工具調用與意圖映射</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                定義「自然語言意圖」與「後端函數」的對應關係。
+                            </p>
+                            <ul class="text-sm text-slate-600 space-y-2 mb-3 list-disc list-inside bg-gray-50 p-3 rounded">
+                                <li><code>save_activity</code>：對話結束後的存檔點。</li>
+                                <li><code>test_email</code>：具體的測試觸發器。</li>
+                            </ul>
+                            <div class="bg-red-50 text-red-800 text-xs px-3 py-2 rounded border border-red-100">
+                                <strong>目的：</strong> 將抽象的用戶請求轉化為具體的程式執行入口。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 6 -->
+                <div id="card-6" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-teal-100 text-teal-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">6</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">工具定義與澄清模板</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                這是 <strong>防禦性編程</strong> 的一部分。提供一個標準的工具定義模板 (Name, Function, Params)。
+                            </p>
+                            <p class="text-sm text-slate-600 mb-3">
+                                如果系統傳入的工具定義不清楚，AI 懂得「報錯」或「要求澄清」，而不是瞎猜參數類型。
+                            </p>
+                            <div class="bg-teal-50 text-teal-800 text-xs px-3 py-2 rounded border border-teal-100">
+                                <strong>目的：</strong> 提高系統的魯棒性 (Robustness)，避免執行錯誤的函數調用。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 7 -->
+                <div id="card-7" class="analysis-card bg-white p-5 rounded-xl border border-gray-200 hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-pink-100 text-pink-600 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold">7</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 mb-2">上下文與數據注入 (Context & State)</h3>
+                            <p class="text-sm text-slate-600 mb-3 leading-relaxed">
+                                這是 Prompt 的動態數據區。透過插入變數，讓 Prompt 具有 <strong>狀態意識 (State Awareness)</strong>。
+                            </p>
+                            <ul class="text-sm text-slate-600 space-y-2 mb-3 list-disc list-inside bg-gray-50 p-3 rounded">
+                                <li><code>Context_Data</code>：用戶歷史偏好。</li>
+                                <li><code>Activity_frame</code>：當前正在編輯的 JSON 狀態。</li>
+                            </ul>
+                            <div class="bg-pink-50 text-pink-800 text-xs px-3 py-2 rounded border border-pink-100">
+                                <strong>目的：</strong> AI 不是從零開始，而是基於當前的資料狀態進行增量修改。
+                            </div>
+                        </div>
                     </div>
                 </div>
 
             </div>
         </div>
+    </div>
 
-        <!-- Conclusion -->
-        <div class="mt-8 bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-8 text-white text-center">
-            <h3 class="text-2xl font-bold mb-3">總結</h3>
-            <p class="max-w-3xl mx-auto text-slate-300">
-                這個 Prompt 是一個<strong>「生產環境級別」</strong>的指令集。它犧牲了 AI 的自由創造力，換取了極高的<strong>穩定性、可預測性與系統整合能力</strong>。它將 LLM 從一個「聊天機器人」轉變成了一個嚴格遵守業務邏輯的「後端控制器」。
-            </p>
-        </div>
+    <script>
+        function activateSection(id) {
+            // 1. Reset all Highlights
+            document.querySelectorAll('.interactive-code').forEach(el => {
+                el.classList.remove('active', 'border-l-4', 'border-indigo-500', 'bg-indigo-50');
+            });
 
-    </main>
+            // 2. Highlight clicked section
+            const activeCode = document.getElementById(`code-${id}`);
+            if(activeCode) {
+                activeCode.classList.add('active');
+            }
 
-    <footer class="bg-slate-100 py-6 mt-12 border-t border-slate-200">
-        <div class="container mx-auto text-center text-sm text-slate-500">
-            Generated by Gemini
-        </div>
-    </footer>
+            // 3. Hide Welcome Message
+            document.getElementById('welcome-message').classList.add('hidden');
 
+            // 4. Handle Analysis Cards
+            // Hide all first
+            document.querySelectorAll('.analysis-card').forEach(el => {
+                el.classList.remove('active', 'ring-2', 'ring-indigo-500');
+                el.classList.add('opacity-50', 'scale-95'); // Dim others
+                el.classList.remove('hidden'); // Ensure they are visible in DOM layout
+            });
+
+            // Show active card
+            const activeCard = document.getElementById(`card-${id}`);
+            if(activeCard) {
+                activeCard.classList.remove('hidden', 'opacity-50', 'scale-95');
+                activeCard.classList.add('active', 'ring-2', 'ring-indigo-500', 'ring-offset-2');
+                
+                // Scroll into view gently
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Initialize: Activate first section gently on load after a delay
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                // Optional: Auto-select section 1 for demo
+                // activateSection(1); 
+            }, 500);
+        });
+    </script>
 </body>
 </html>
